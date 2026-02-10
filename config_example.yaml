@@ -1,0 +1,201 @@
+# ============================================================
+# CRYPTO ALPHA BOT — CONFIGURATION
+# ============================================================
+# Copy this to config.yaml and fill in your values
+# NEVER commit config.yaml to git (it has your API keys)
+# ============================================================
+
+exchange:
+  name: "binance"  # binance, bybit, kucoin
+  api_key: "YOUR_API_KEY_HERE"
+  api_secret: "YOUR_API_SECRET_HERE"
+  testnet: true  # START WITH TESTNET! Switch to false for live
+
+# ============================================================
+# UNIVERSE — Which coins to scan
+# ============================================================
+universe:
+  # How many top alts by market cap to monitor
+  top_n_alts: 200
+  # Minimum 24h volume (USD) to consider trading
+  min_volume_usd: 1_000_000
+  # Excluded coins (stablecoins, wrapped tokens, etc)
+  exclude:
+    - "USDT"
+    - "USDC"
+    - "DAI"
+    - "BUSD"
+    - "WBTC"
+    - "WETH"
+    - "stETH"
+  # Quote currency for trading pairs
+  quote_currency: "USDT"
+
+# ============================================================
+# BTC MOMENTUM SCANNER
+# ============================================================
+btc_momentum:
+  # Timeframes to analyze
+  timeframes:
+    - "5m"
+    - "15m"
+    - "1h"
+    - "4h"
+    - "1d"
+  # Momentum is "hot" when score exceeds this
+  hot_threshold: 65
+  # Momentum is "on fire" — increase position sizes
+  fire_threshold: 80
+  # Momentum cooling — tighten stops, no new entries
+  cool_threshold: 40
+  # Momentum dead — exit all alt positions
+  exit_threshold: 25
+
+# ============================================================
+# ALT BETA AMPLIFICATION
+# ============================================================
+alt_scanner:
+  # Minimum beta vs BTC to consider (2.0 = moves 2x Bitcoin)
+  min_beta: 2.0
+  # Preferred beta range for each profile
+  conservative_beta_range: [2.0, 4.0]
+  moderate_beta_range: [3.0, 8.0]
+  aggressive_beta_range: [5.0, 20.0]
+  # Volume surge threshold (multiple of avg volume)
+  volume_surge_multiplier: 2.5
+  # How many candles to calculate rolling beta
+  beta_lookback_periods: 48  # 48 x 1h = 2 days
+  # Maximum correlation with BTC required (too low = independent move, risky)
+  min_btc_correlation: 0.5
+
+# ============================================================
+# TRADING PROFILES
+# ============================================================
+profiles:
+  conservative:
+    # Position sizing
+    max_position_pct: 5.0        # % of portfolio per trade
+    max_concurrent_positions: 3
+    max_portfolio_risk_pct: 10.0  # max total at risk
+    # Entry/Exit
+    take_profit_pct: 8.0
+    stop_loss_pct: 2.5
+    trailing_stop_pct: 3.0
+    # Only enter on high confidence
+    min_confidence_score: 0.75
+    # Time limits
+    max_hold_hours: 48
+    # BTC momentum must be above this to enter
+    min_btc_momentum: 65
+
+  moderate:
+    max_position_pct: 10.0
+    max_concurrent_positions: 5
+    max_portfolio_risk_pct: 25.0
+    take_profit_pct: 15.0
+    stop_loss_pct: 4.0
+    trailing_stop_pct: 5.0
+    min_confidence_score: 0.65
+    max_hold_hours: 96
+    min_btc_momentum: 55
+
+  aggressive:
+    max_position_pct: 15.0
+    max_concurrent_positions: 8
+    max_portfolio_risk_pct: 40.0
+    take_profit_pct: 30.0
+    stop_loss_pct: 7.0
+    trailing_stop_pct: 8.0
+    min_confidence_score: 0.55
+    max_hold_hours: 168  # 7 days
+    min_btc_momentum: 45
+
+# Active profile
+active_profile: "moderate"
+
+# ============================================================
+# REGIME DETECTION
+# ============================================================
+regime:
+  # Bull market confirmation signals
+  bull_signals:
+    btc_above_200d_ma: true
+    weekly_trend: "up"
+    fear_greed_above: 45
+  # Bear market signals
+  bear_signals:
+    btc_below_200d_ma: true
+    weekly_trend: "down"
+    fear_greed_below: 30
+  # Overheated / exit signals
+  exit_signals:
+    fear_greed_above: 90
+    mvrv_above: 3.5
+    funding_rate_extreme: true
+
+# ============================================================
+# DATA COLLECTION
+# ============================================================
+data:
+  # Where to store collected data
+  db_path: "./data/market_data.db"
+  # Collection intervals
+  ohlcv_interval: "1m"     # Collect 1-minute candles
+  orderbook_interval: 60   # Snapshot every 60 seconds
+  sentiment_interval: 300  # Every 5 minutes
+  onchain_interval: 3600   # Every hour
+  # Data sources
+  fear_greed_url: "https://api.alternative.me/fng/"
+  
+# ============================================================
+# DASHBOARD
+# ============================================================
+dashboard:
+  port: 8501
+  refresh_interval: 5  # seconds
+
+# ============================================================
+# RISK MANAGEMENT (GLOBAL)
+# ============================================================
+risk:
+  # Maximum daily loss before bot shuts down
+  max_daily_loss_pct: 5.0
+  # Maximum drawdown from peak before bot shuts down
+  max_drawdown_pct: 15.0
+  # Cool-off period after hitting loss limit (hours)
+  cooloff_hours: 24
+  # Always keep this % in stablecoins
+  min_cash_reserve_pct: 20.0
+
+# ============================================================
+# LLM AGENT SYSTEM
+# ============================================================
+agent:
+  # How often agents vote (hours)
+  vote_interval_hours: 4
+  # Model paths (after fine-tuning)
+  agent_a_model: "models/llm/crypto_analyst_a_fused"
+  agent_b_model: "models/llm/crypto_analyst_b_fused"
+  # Fallback model if fine-tuned models not available
+  fallback_model: "mlx-community/Mistral-7B-Instruct-v0.3-4bit"
+  # Require unanimous vote for aggressive trades
+  require_unanimous_for_aggressive: true
+  # Emergency re-vote if BTC momentum drops this much
+  emergency_revote_momentum_drop_pct: 50
+
+# ============================================================
+# LLM FINE-TUNING
+# ============================================================
+finetune:
+  # Base model to fine-tune
+  base_model: "mlx-community/Mistral-7B-Instruct-v0.3-4bit"
+  # Training parameters
+  iterations: 1000
+  batch_size: 2
+  learning_rate: 0.00002
+  lora_rank: 8
+  lora_layers: 16
+  max_seq_length: 2048
+  # Data paths
+  training_data_dir: "data/training"
+  historical_data_dir: "data/historical"

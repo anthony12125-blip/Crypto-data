@@ -1,4 +1,4 @@
-FROM runpod/pytorch:2.2.0-py3.10-cuda12.1-devel-ubuntu22.04
+FROM pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime
 
 WORKDIR /workspace
 
@@ -12,7 +12,6 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies for Hugging Face + PEFT training
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
-    torch==2.2.0 \
     transformers==4.37.2 \
     datasets==2.16.1 \
     peft==0.8.2 \

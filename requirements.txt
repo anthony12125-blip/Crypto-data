@@ -1,0 +1,10 @@
+torch==2.2.0
+transformers==4.37.2
+datasets==2.16.1
+peft==0.8.2
+bitsandbytes==0.42.0
+accelerate==0.26.1
+scipy
+sentencepiece
+protobuf
+runpod

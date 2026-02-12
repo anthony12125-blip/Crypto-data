@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  # ==========================================================================
+  # Freqtrade - Execution Engine (The "Body")
+  # ==========================================================================
+  freqtrade:
+    image: freqtradeorg/freqtrade:stable
+    container_name: iron-dragoon-freqtrade
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./freqtrade:/freqtrade/user_data
+      - ./data:/freqtrade/data
+      - ./logs:/freqtrade/logs
+    command: >
+      trade
+      --config /freqtrade/user_data/config.json
+      --strategy IronDragoonStrategy
+      --db-url sqlite:///freqtrade/user_data/tradesv3.sqlite
+    environment:
+      - TZ=America/Chicago
+    networks:
+      - iron-dragoon
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==========================================================================
+  # Redis - Message queue for signals
+  # ==========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: iron-dragoon-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - iron-dragoon
+
+  # ==========================================================================
+  # Sentry Scanner - Background scanning service
+  # ==========================================================================
+  sentry:
+    build:
+      context: .
+      dockerfile: Dockerfile.sentry
+    container_name: iron-dragoon-sentry
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}
+      - BINANCE_US_API_KEY=${BINANCE_US_API_KEY}
+      - BINANCE_US_SECRET=${BINANCE_US_SECRET}
+      - REDIS_URL=redis://redis:6379
+      - TZ=America/Chicago
+    networks:
+      - iron-dragoon
+    depends_on:
+      - redis
+      - freqtrade
+
+  # ==========================================================================
+  # Discord Bot - Human-in-the-Loop Interface
+  # ==========================================================================
+  discord-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.discord
+    container_name: iron-dragoon-discord
+    restart: unless-stopped
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./freqtrade:/app/freqtrade
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}
+      - DISCORD_CHANNEL_ID=${DISCORD_CHANNEL_ID}
+      - FREQTRADE_API_URL=http://freqtrade:8080
+      - FREQTRADE_USERNAME=irondragoon
+      - FREQTRADE_PASSWORD=${FREQTRADE_PASSWORD}
+      - DB_PATH=/app/data/irondragoons/sentry.db
+      - TZ=America/Chicago
+    networks:
+      - iron-dragoon
+    depends_on:
+      - freqtrade
+      - redis
+
+  # ==========================================================================
+  # Jupyter Notebook - Analysis and monitoring
+  # ==========================================================================
+  jupyter:
+    image: jupyter/scipy-notebook:latest
+    container_name: iron-dragoon-jupyter
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./notebooks:/home/jovyan/work
+      - ./data:/home/jovyan/data
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+      - JUPYTER_TOKEN=irondragoon
+    networks:
+      - iron-dragoon
+    profiles:
+      - analysis
+
+volumes:
+  redis_data:
+
+networks:
+  iron-dragoon:
+    driver: bridge

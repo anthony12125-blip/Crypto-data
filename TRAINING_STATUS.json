@@ -1,0 +1,55 @@
+{
+  "project": "IRON DRAGOON",
+  "status": "TRAINING_DATA_READY",
+  "timestamp": "2026-02-12T15:52:00",
+  "data_summary": {
+    "total_articles": 172173,
+    "date_range": "2010-2026",
+    "financial_days": 4165,
+    "total_training_examples": 516519
+  },
+  "agents": {
+    "agent_a": {
+      "name": "Technician",
+      "type": "Category-Chronological",
+      "train": 137738,
+      "validation": 17217,
+      "test": 17218,
+      "focus": "Chart patterns, technical analysis"
+    },
+    "agent_b": {
+      "name": "Fundamentalist",
+      "type": "Reverse-Chronological",
+      "train": 137738,
+      "validation": 17217,
+      "test": 17218,
+      "focus": "News catalysts, partnerships, mainnet"
+    },
+    "agent_c": {
+      "name": "Risk Manager",
+      "type": "Random-Shuffle",
+      "train": 137738,
+      "validation": 17217,
+      "test": 17218,
+      "focus": "BTC dominance, funding rates, macro"
+    }
+  },
+  "file_locations": {
+    "agent_a_train": "data/training/agent_a/train.jsonl",
+    "agent_a_val": "data/training/agent_a/validation.jsonl",
+    "agent_a_test": "data/training/agent_a/test.jsonl",
+    "agent_b_train": "data/training/agent_b/train.jsonl",
+    "agent_b_val": "data/training/agent_b/validation.jsonl",
+    "agent_b_test": "data/training/agent_b/test.jsonl",
+    "agent_c_train": "data/training/agent_c/train.jsonl",
+    "agent_c_val": "data/training/agent_c/validation.jsonl",
+    "agent_c_test": "data/training/agent_c/test.jsonl"
+  },
+  "next_steps": [
+    "Deploy to RunPod: python deploy_runpod_agents.py",
+    "Start training: runpodctl start pod <pod_id>",
+    "Monitor training logs",
+    "Download trained models",
+    "Integrate with trading system"
+  ]
+}

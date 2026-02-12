@@ -1,0 +1,27 @@
+{
+  "created_at": "2026-02-12T15:52:41.158253",
+  "data_sources": [
+    "crypto_chronological_master.db",
+    "crypto_data_complete.zip",
+    "data/financial/*.csv"
+  ],
+  "agents": {
+    "agent_a": {
+      "type": "Technician",
+      "ordering": "category-chronological",
+      "file": "data/training/agent_a/train.jsonl"
+    },
+    "agent_b": {
+      "type": "Fundamentalist",
+      "ordering": "reverse-chronological",
+      "file": "data/training/agent_b/train.jsonl"
+    },
+    "agent_c": {
+      "type": "Risk Manager",
+      "ordering": "random-shuffle",
+      "file": "data/training/agent_c/train.jsonl"
+    }
+  },
+  "format": "Mistral instruction tuning",
+  "financial_alignment": true
+}

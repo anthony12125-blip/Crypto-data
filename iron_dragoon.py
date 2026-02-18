@@ -16,6 +16,9 @@ import asyncio
 import discord
 from discord.ext import commands, tasks
 
+# Import scoring engine
+from scoring_engine import CryptoScoringEngine
+
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
@@ -315,6 +318,15 @@ class Sentry:
             signals = self.scan_coin(coin)
             all_signals.extend(signals)
         return all_signals
+    
+    def get_ohlcv(self, symbol, limit=100):
+        """Fetch OHLCV data for scoring engine"""
+        try:
+            ohlcv = self.exchange.fetch_ohlcv(symbol, '1h', limit=limit)
+            return ohlcv
+        except Exception as e:
+            print(f"❌ Error fetching OHLCV for {symbol}: {e}")
+            return None
 
 # =============================================================================
 # DISCORD BOT - Human-in-the-Loop Interface
@@ -329,21 +341,26 @@ class IronDragoonBot(commands.Bot):
         super().__init__(command_prefix='!', intents=intents)
         
         self.sentry = Sentry()
+        self.scoring_engine = CryptoScoringEngine()
         self.pending_trades = []
         self.active_positions = {}
         self.daily_pnl = 0.0
         self.peak_value = CONFIG['starting_capital']
         self.current_value = CONFIG['starting_capital']
         self.drawdown_triggered = False
+        self.market_context = None  # Will be updated with BTC data
     
     async def setup_hook(self):
         self.sentry_scan.start()
     
     @tasks.loop(minutes=5)
     async def sentry_scan(self):
-        """Run sentry scan every 5 minutes"""
+        """Run sentry scan every 5 minutes with scoring"""
         if self.drawdown_triggered:
             return
+        
+        # Update market context for regime scoring
+        await self.update_market_context()
         
         signals = self.sentry.scan_all()
         
@@ -351,24 +368,84 @@ class IronDragoonBot(commands.Bot):
             # Check if we should alert
             if signal['type'] in ['VOLUME_SPIKE', 'RSI_OVERSOLD']:
                 if len(self.active_positions) < CONFIG['max_positions']:
-                    await self.alert_signal(signal)
+                    # Score the signal
+                    symbol = signal['symbol']
+                    ohlcv = self.sentry.get_ohlcv(symbol)  # Need to add this method
+                    
+                    if ohlcv is not None and len(ohlcv) > 50:
+                        scores = self.scoring_engine.score_coin(symbol, ohlcv, self.market_context)
+                        
+                        # Only alert on BUY or STRONG_BUY (composite >= 65)
+                        if scores['composite'] >= 65:
+                            await self.alert_signal(signal, scores)
+                        else:
+                            print(f"⏭️ Skipped {symbol}: Score {scores['composite']:.1f} ({scores['signal_strength']})")
     
-    async def alert_signal(self, signal):
-        """Send alert to Discord for human approval"""
+    async def update_market_context(self):
+        """Fetch BTC data for regime scoring"""
+        try:
+            btc_data = self.sentry.get_ohlcv('BTC/USD', limit=100)
+            if btc_data and len(btc_data) >= 30:
+                df = pd.DataFrame(btc_data, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+                
+                # Calculate BTC 7-day change
+                btc_7d_change = (df['close'].iloc[-1] / df['close'].iloc[-7] - 1) * 100
+                
+                # Calculate volatility
+                returns = df['close'].pct_change().dropna()
+                btc_vol = returns.tail(7).std() * np.sqrt(365) * 100
+                
+                self.market_context = {
+                    'btc_dominance': 50.0,  # Placeholder - would need actual BTC dominance API
+                    'funding_rate': 0.0,  # Placeholder - would need exchange funding data
+                    'btc_correlation': 0.7,  # Will be calculated per-coin
+                    'btc_7d_change': btc_7d_change,
+                    'btc_volatility': btc_vol
+                }
+        except Exception as e:
+            print(f"⚠️ Error updating market context: {e}")
+            self.market_context = None
+    
+    async def alert_signal(self, signal, scores=None):
+        """Send alert to Discord for human approval with scores"""
         channel = self.get_channel(int(os.getenv('DISCORD_CHANNEL_ID', 0)))
         if not channel:
             return
         
+        # Determine color based on signal strength
+        if scores and scores['signal_strength'] == 'STRONG_BUY':
+            color = discord.Color.green()
+            emoji = "🔥"
+        elif scores and scores['signal_strength'] == 'BUY':
+            color = discord.Color.gold()
+            emoji = "🎯"
+        else:
+            color = discord.Color.blue()
+            emoji = "📊"
+        
         embed = discord.Embed(
-            title=f"🎯 TARGET ACQUIRED: {signal['symbol']}",
+            title=f"{emoji} TARGET ACQUIRED: {signal['symbol']}",
             description=f"Signal: {signal['type']}",
-            color=discord.Color.gold()
+            color=color
         )
         embed.add_field(name="Price", value=f"${signal['price']:.2f}", inline=True)
         embed.add_field(name="RSI", value=f"{signal['rsi']:.1f}", inline=True)
-        embed.add_field(name="Volume Spike", value=f"{signal.get('volume_spike', 0):.2f}x", inline=True)
-        embed.add_field(name="Action", value="React with ✅ to approve trade
-React with ❌ to reject", inline=False)
+        if signal.get('volume_spike'):
+            embed.add_field(name="Volume Spike", value=f"{signal['volume_spike']:.2f}x", inline=True)
+        
+        # Add scoring breakdown if available
+        if scores:
+            embed.add_field(
+                name="📊 SCORING BREAKDOWN",
+                value=f"Composite: **{scores['composite']:.1f}** ({scores['signal_strength']})",
+                inline=False
+            )
+            embed.add_field(name="Vol-Edge", value=f"{scores['vol_edge']:.0f}", inline=True)
+            embed.add_field(name="Quality", value=f"{scores['quality']:.0f}", inline=True)
+            embed.add_field(name="Setup", value=f"{scores['setup']:.0f}", inline=True)
+            embed.add_field(name="Regime", value=f"{scores['regime']:.0f}", inline=True)
+        
+        embed.add_field(name="Action", value="React with ✅ to approve trade\nReact with ❌ to reject", inline=False)
         
         message = await channel.send(embed=embed)
         await message.add_reaction('✅')
@@ -377,6 +454,7 @@ React with ❌ to reject", inline=False)
         self.pending_trades.append({
             'message_id': message.id,
             'signal': signal,
+            'scores': scores,
             'timestamp': datetime.now()
         })
     

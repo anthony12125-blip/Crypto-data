@@ -1,0 +1,5 @@
+{
+  "deployed_at": "2026-02-12T16:17:35.257544",
+  "pods": {},
+  "image": "pytorch/pytorch:2.2.0-cuda12.1-cudnn8-runtime"
+}

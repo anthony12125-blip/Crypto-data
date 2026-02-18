@@ -1,0 +1,46 @@
+======================================================================
+IRON DRAGOON - TRAINING MONITOR - 2026-02-13T14:19:03.397600
+======================================================================
+
+🤖 AGENT_A
+   Pod ID: dbj6fou7fjjix2
+   ❌ Error: No response
+
+🤖 AGENT_B
+   Pod ID: u9w634wsvtxbmd
+   ❌ Error: No response
+
+🤖 AGENT_C
+   Pod ID: oxt1ekngidltqr
+   ❌ Error: No response
+
+======================================================================
+SUMMARY
+======================================================================
+Training: 0 | Idle: 0 | Starting: 0
+
+Next check: Run this script again in 30 minutes
+Or set up: python monitor_pods.py --watch
+======================================================================
+IRON DRAGOON - TRAINING MONITOR - 2026-02-13T14:54:34.925191
+======================================================================
+
+🤖 AGENT_A
+   Pod ID: dbj6fou7fjjix2
+   ❌ Error: No response
+
+🤖 AGENT_B
+   Pod ID: u9w634wsvtxbmd
+   ❌ Error: No response
+
+🤖 AGENT_C
+   Pod ID: oxt1ekngidltqr
+   ❌ Error: No response
+
+======================================================================
+SUMMARY
+======================================================================
+Training: 0 | Idle: 0 | Starting: 0
+
+Next check: Run this script again in 30 minutes
+Or set up: python monitor_pods.py --watch

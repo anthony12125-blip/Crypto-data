@@ -1,0 +1,17 @@
+{
+  "deployed_at": "2026-02-12T16:12:46.143286",
+  "pods": {
+    "agent_a": {
+      "id": "dbj6fou7fjjix2",
+      "name": "iron-dragoon-agent_a"
+    },
+    "agent_b": {
+      "id": "u9w634wsvtxbmd",
+      "name": "iron-dragoon-agent_b"
+    },
+    "agent_c": {
+      "id": "oxt1ekngidltqr",
+      "name": "iron-dragoon-agent_c"
+    }
+  }
+}

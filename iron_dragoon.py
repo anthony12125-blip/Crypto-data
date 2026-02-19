@@ -540,6 +540,50 @@ class IronDragoonBot(commands.Bot):
         """Resume trading"""
         self.drawdown_triggered = False
         await ctx.send("🟢 TRADING RESUMED.")
+    
+    @commands.command()
+    async def score(self, ctx, symbol=None):
+        """Manually score a coin (e.g., !score BTC/USD)"""
+        if not symbol:
+            await ctx.send("❌ Usage: !score BTC/USD")
+            return
+        
+        # Normalize symbol
+        if '/' not in symbol:
+            symbol = f"{symbol}/USD"
+        
+        await ctx.send(f"🔍 Scoring {symbol}...")
+        
+        try:
+            ohlcv = self.sentry.get_ohlcv(symbol, limit=100)
+            if ohlcv is None or len(ohlcv) < 50:
+                await ctx.send(f"❌ Not enough data for {symbol}")
+                return
+            
+            scores = self.scoring_engine.score_coin(symbol, ohlcv, self.market_context)
+            
+            embed = discord.Embed(
+                title=f"📊 SCORE: {symbol}",
+                description=f"Composite: {scores['composite']:.1f} ({scores['signal_strength']})",
+                color=discord.Color.green() if scores['composite'] >= 65 else discord.Color.orange()
+            )
+            embed.add_field(name="Vol-Edge", value=f"{scores['vol_edge']:.1f}", inline=True)
+            embed.add_field(name="Quality", value=f"{scores['quality']:.1f}", inline=True)
+            embed.add_field(name="Setup", value=f"{scores['setup']:.1f}", inline=True)
+            embed.add_field(name="Regime", value=f"{scores['regime']:.1f}", inline=True)
+            
+            # Recommendation
+            if scores['signal_strength'] in ['STRONG_BUY', 'BUY']:
+                embed.add_field(name="🎯 RECOMMENDATION", value="**BUY SIGNAL** - Ready for entry", inline=False)
+            elif scores['signal_strength'] == 'NEUTRAL':
+                embed.add_field(name="⏸️ RECOMMENDATION", value="NEUTRAL - Wait for better setup", inline=False)
+            else:
+                embed.add_field(name="❌ RECOMMENDATION", value="AVOID - Not a good entry", inline=False)
+            
+            await ctx.send(embed=embed)
+            
+        except Exception as e:
+            await ctx.send(f"❌ Error scoring {symbol}: {e}")
 
 # =============================================================================
 # MAIN

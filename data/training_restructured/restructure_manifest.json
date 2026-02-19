@@ -1,0 +1,27 @@
+{
+  "restructured_date": "2026-02-19",
+  "format": "Mistral instruction tuning - Trade Decision Format",
+  "agents": {
+    "agent_a": {
+      "type": "Technician",
+      "focus": "Technical analysis, RSI, momentum"
+    },
+    "agent_b": {
+      "type": "Fundamentalist",
+      "focus": "News catalysts, sentiment"
+    },
+    "agent_c": {
+      "type": "Risk Manager",
+      "focus": "Risk assessment, position sizing"
+    }
+  },
+  "output_structure": {
+    "Action": "BUY/WAIT/SKIP",
+    "Trade Card": "Entry, Stop Loss, Take Profit, Position Size, Horizon",
+    "Reasoning": "Plain English explanation",
+    "Risk Flags": "Potential issues",
+    "Confidence": "0-100 score"
+  },
+  "sample_size": 100,
+  "note": "Full dataset (137K per agent) can be processed by removing sample_size limit"
+}
